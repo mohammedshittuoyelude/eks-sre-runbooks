@@ -29,8 +29,7 @@ kubectl get pods -n kube-system -l k8s-app=kube-dns
 kubectl get deploy coredns -n kube-system
 kubectl get svc kube-dns -n kube-system
 kubectl get endpoints kube-dns -n kube-system
-
----
+```
 
 Expected:
 
