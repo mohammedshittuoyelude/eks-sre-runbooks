@@ -10,9 +10,9 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-## 📚 Runbooks Included
+##  Runbooks Included
 
-### 1️⃣ CoreDNS DNS Latency & Timeouts
+### 1️ CoreDNS DNS Latency & Timeouts
 **Focus:** Cluster DNS failures, latency, and intermittent resolution issues  
 **Covers:**
 - `EAI_AGAIN`, `SERVFAIL`, DNS timeouts
@@ -24,7 +24,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-### 2️⃣ VPC CNI IP Exhaustion & Prefix Delegation
+### 2️ VPC CNI IP Exhaustion & Prefix Delegation
 **Focus:** Pod scheduling failures caused by IPAM and ENI exhaustion  
 **Covers:**
 - Pods stuck in `Pending` / `ContainerCreating`
@@ -36,7 +36,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-### 3️⃣ Pod OOMKills & CPU Throttling
+### 3️ Pod OOMKills & CPU Throttling
 **Focus:** Application instability caused by memory and CPU constraints  
 **Covers:**
 - OOMKilled diagnosis
@@ -48,7 +48,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-### 4️⃣ Karpenter Node Provisioning Failures
+### 4️ Karpenter Node Provisioning Failures
 **Focus:** Cluster autoscaling and node provisioning issues  
 **Covers:**
 - Pending pods due to capacity
