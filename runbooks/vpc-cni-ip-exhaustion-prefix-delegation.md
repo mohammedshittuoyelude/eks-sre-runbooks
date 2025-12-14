@@ -262,7 +262,3 @@ Success criteria:
 * Alert on IPAM errors from aws-node
 * Test scaling behavior during load tests
 
-````
-
----
-
