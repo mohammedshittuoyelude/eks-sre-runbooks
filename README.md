@@ -20,7 +20,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 - Kubernetes API connectivity
 - Node-level networking and conntrack pressure
 
-📄 `runbooks/coredns-dns-latency-timeouts.md`
+`runbooks/coredns-dns-latency-timeouts.md`
 
 ---
 
@@ -32,7 +32,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 - Prefix delegation tuning
 - ENI limits and instance sizing
 
-📄 `runbooks/vpc-cni-ip-exhaustion-prefix-delegation.md`
+`runbooks/vpc-cni-ip-exhaustion-prefix-delegation.md`
 
 ---
 
