@@ -285,7 +285,7 @@ Applies to workloads running on **Amazon EKS** using:
 
 ---
 
-## 1️⃣ .NET (.NET 6 / .NET 8) on EKS
+## 1️ .NET (.NET 6 / .NET 8) on EKS
 
 ### Common Failure Patterns
 
@@ -371,7 +371,7 @@ Look for:
 
 ---
 
-## 2️⃣ JVM (Java 11 / 17 / 21) on EKS
+## 2️ JVM (Java 11 / 17 / 21) on EKS
 
 ### Common Failure Patterns
 
@@ -444,7 +444,7 @@ jcmd <pid> VM.native_memory summary
 * GC threads are CPU-bound
 * CPU throttling → longer GC → latency spikes
 
-**SRE Recommendation**
+**Recommendation**
 
 * Set **CPU requests realistically**
 * Avoid extremely low CPU limits
@@ -452,7 +452,7 @@ jcmd <pid> VM.native_memory summary
 
 ---
 
-## 3️⃣ Python on EKS
+## 3️ Python on EKS
 
 ### Common Failure Patterns
 
@@ -519,7 +519,7 @@ Watch for:
 
 ---
 
-## 4️⃣ Node.js (brief but important)
+## 4️ Node.js (brief but important)
 
 ### Common Issues
 
@@ -535,7 +535,7 @@ Watch for:
 
 ---
 
-## 5️⃣ Go (brief)
+## 5️ Go (brief)
 
 ### Characteristics
 
@@ -554,7 +554,7 @@ Watch for:
 
 ---
 
-## 6️⃣ Cross-Runtime SRE Rules (VERY IMPORTANT)
+## 6️ Cross-Runtime Rules (VERY IMPORTANT)
 
 ### 1. Never size heap = container memory
 
@@ -592,7 +592,7 @@ Even “healthy” pods can be evicted when:
 
 ---
 
-## 7️⃣ SRE-Grade Alerts to Add
+## 7️ Alerts to Add
 
 * Pod OOMKilled count
 * Memory usage > 80% of limit
