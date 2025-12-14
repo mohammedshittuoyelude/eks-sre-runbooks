@@ -16,8 +16,6 @@ This runbook helps identify whether the root cause is related to:
 
 ---
 
-## Quick Triage (5–10 minutes)
-
 ### 1. Confirm scope and impact
 Determine:
 - Is the issue cluster-wide or namespace-specific?
