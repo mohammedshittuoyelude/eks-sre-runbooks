@@ -30,6 +30,7 @@ kubectl get deploy coredns -n kube-system
 kubectl get svc kube-dns -n kube-system
 kubectl get endpoints kube-dns -n kube-system
 
+---
 
 Expected:
 
