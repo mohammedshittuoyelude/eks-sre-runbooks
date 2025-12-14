@@ -8,7 +8,7 @@ Diagnose and resolve issues where Kubernetes workloads experience:
 - Traffic “blackholes” where packets are silently dropped
 
 These issues are often caused by failures in:
-- EKS API server connectivity
+- EKS API Server connectivity
 - kube-proxy rules (iptables/IPVS)
 - Node-level networking, security groups, or routing
 
@@ -262,4 +262,3 @@ A subset of nodes had corrupted kube-proxy iptables rules following repeated sca
 * Added monitoring for kube-proxy health
 * Reduced iptables rule growth by limiting service churn
 * Included node replacement as a first-class remediation step
-
