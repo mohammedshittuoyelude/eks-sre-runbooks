@@ -263,3 +263,340 @@ kubectl describe pod <pod-name> -n <namespace> | sed -n '1,160p'
   * memory approaching limit
 * Add load tests to validate scaling behavior
 * Track memory leak indicators and automate heap/diagnostic capture where possible
+
+# Runtime-Specific Memory & CPU Tuning (EKS)
+
+## Purpose
+
+Provide language/runtime-specific guidance for diagnosing and preventing:
+
+* OOMKills
+* CPU throttling
+* Memory fragmentation
+* GC-related latency
+* Heap vs container memory mismatch
+
+Applies to workloads running on **Amazon EKS** using:
+
+* .NET (.NET 6 / .NET 8)
+* JVM (Java 11/17/21)
+* Python
+* Node.js / Go (briefly)
+
+---
+
+## 1️⃣ .NET (.NET 6 / .NET 8) on EKS
+
+### Common Failure Patterns
+
+**Symptoms**
+
+* Pods OOMKilled even though heap usage looks “normal”
+* Memory usage grows slowly over time
+* Latency spikes under load
+* Restarts “fix” the issue temporarily
+
+**Root Causes**
+
+* Server GC using too much memory inside container
+* GC heap not respecting container limits (older versions)
+* LOH (Large Object Heap) fragmentation
+* Thread pool growth under load
+* Native memory (non-heap) growth
+
+---
+
+### Key Checks
+
+#### 1. Confirm GC mode
+
+```bash
+kubectl exec -it <pod> -- printenv | grep -i gc
+```
+
+Check runtime info:
+
+```bash
+kubectl exec -it <pod> -- dotnet --info
+```
+
+**Red flags**
+
+* `Server GC: true` + small container memory
+* No explicit memory limits or GC configuration
+
+---
+
+### Recommended .NET Container Settings (EKS)
+
+#### Environment variables (VERY IMPORTANT)
+
+```yaml
+env:
+  - name: DOTNET_GC_SERVER
+    value: "1"
+  - name: DOTNET_GC_HEAP_HARD_LIMIT_PERCENT
+    value: "75"
+  - name: DOTNET_GC_CONCURRENT
+    value: "1"
+```
+
+**Why**
+
+* Prevents GC from consuming 100% of container memory
+* Leaves headroom for native allocations and threads
+
+---
+
+### Resource Sizing Guidance
+
+* **Memory limit**: at least **1.3–1.5× expected steady-state**
+* **Memory request**: close to real usage (avoid overpacking nodes)
+* Avoid extremely tight memory limits with Server GC
+
+---
+
+### Advanced Diagnostics
+
+```bash
+kubectl exec -it <pod> -- dotnet-counters monitor
+kubectl exec -it <pod> -- dotnet-gcdump collect
+```
+
+Look for:
+
+* Heap growth over time
+* LOH fragmentation
+* High allocation rate
+
+---
+
+## 2️⃣ JVM (Java 11 / 17 / 21) on EKS
+
+### Common Failure Patterns
+
+**Symptoms**
+
+* Pod OOMKilled but heap never reached `-Xmx`
+* High GC pause times
+* CPU throttling during GC
+* Sudden memory spikes
+
+**Root Causes**
+
+* JVM heap not container-aware
+* Heap too large relative to pod memory
+* Metaspace / native memory exhaustion
+* GC threads throttled by CPU limits
+
+---
+
+### MUST-HAVE JVM Flags (Containers)
+
+```bash
+-XX:+UseContainerSupport
+-XX:MaxRAMPercentage=70
+-XX:InitialRAMPercentage=50
+-XX:+ExitOnOutOfMemoryError
+```
+
+**Why**
+
+* Prevents JVM from assuming host memory
+* Leaves room for:
+
+  * Metaspace
+  * Thread stacks
+  * Direct buffers
+  * JIT
+
+---
+
+### GC Recommendations
+
+* **G1GC** (default in modern JVMs) → good for most services
+* For latency-sensitive services:
+
+  ```bash
+  -XX:MaxGCPauseMillis=200
+  ```
+
+---
+
+### What to Monitor
+
+* Heap usage vs MaxRAMPercentage
+* GC pause time
+* Allocation rate
+* Native memory tracking (if enabled)
+
+```bash
+jcmd <pid> GC.heap_info
+jcmd <pid> VM.native_memory summary
+```
+
+---
+
+### CPU Throttling Impact on JVM
+
+**Very important**
+
+* GC threads are CPU-bound
+* CPU throttling → longer GC → latency spikes
+
+**SRE Recommendation**
+
+* Set **CPU requests realistically**
+* Avoid extremely low CPU limits
+* Prefer HPA scaling over tight CPU caps
+
+---
+
+## 3️⃣ Python on EKS
+
+### Common Failure Patterns
+
+**Symptoms**
+
+* Gradual memory growth
+* OOMKill after hours/days
+* CPU spikes under load
+* Works fine locally, fails in Kubernetes
+
+**Root Causes**
+
+* Python memory fragmentation
+* Objects not released to OS
+* Large in-memory data structures
+* Too many workers (gunicorn/uvicorn)
+
+---
+
+### Key Characteristics (important for SREs)
+
+* Python does **not** return memory to OS reliably
+* RSS may only grow, never shrink
+* Garbage collection is not heap-compacting
+
+---
+
+### Best Practices
+
+#### Gunicorn / Uvicorn
+
+```bash
+--max-requests 1000
+--max-requests-jitter 100
+```
+
+**Why**
+
+* Forces worker recycle
+* Prevents unbounded memory growth
+
+---
+
+### Resource Sizing Guidance
+
+* Set memory limit with **ample headroom**
+* Avoid ultra-tight memory limits
+* Monitor RSS, not just heap-like metrics
+
+---
+
+### Debugging Tools
+
+```bash
+tracemalloc
+objgraph
+gc.get_stats()
+```
+
+Watch for:
+
+* Steady RSS increase
+* Worker count vs memory per worker
+
+---
+
+## 4️⃣ Node.js (brief but important)
+
+### Common Issues
+
+* V8 heap limit too large
+* Event loop blocking
+* Memory leak in closures
+
+### Must-have flag
+
+```bash
+--max-old-space-size=70% of container memory
+```
+
+---
+
+## 5️⃣ Go (brief)
+
+### Characteristics
+
+* GC is concurrent and container-aware
+* Usually fewer memory surprises
+* OOMKills often due to:
+
+  * Large in-memory caches
+  * Unbounded goroutines
+
+### Key checks
+
+* Goroutine count
+* Heap growth trend
+* Memory request sizing
+
+---
+
+## 6️⃣ Cross-Runtime SRE Rules (VERY IMPORTANT)
+
+### 1. Never size heap = container memory
+
+Always leave room for:
+
+* Native memory
+* Threads
+* Buffers
+* Sidecars (Envoy, logging agents)
+
+---
+
+### 2. CPU limits can cause latency
+
+* CPU throttling affects:
+
+  * GC
+  * Thread scheduling
+  * Event loops
+* Prefer:
+
+  * Reasonable CPU requests
+  * Autoscaling
+  * Fewer hard CPU limits for latency-critical services
+
+---
+
+### 3. Watch node pressure
+
+Even “healthy” pods can be evicted when:
+
+* Node memory pressure rises
+* Requests are too low
+* Node is overpacked
+
+---
+
+## 7️⃣ SRE-Grade Alerts to Add
+
+* Pod OOMKilled count
+* Memory usage > 80% of limit
+* CPU throttling ratio
+* GC pause time
+* Restart count increase
+* Node memory pressure
