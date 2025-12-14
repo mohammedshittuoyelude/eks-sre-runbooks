@@ -1,3 +1,73 @@
+Perfect — I can see the exact problem now.
+
+### ✅ What’s happening
+
+You accidentally pasted my *chat instructions* into the file **and** you wrapped the runbook in an outer fence:
+
+* You have this **non-runbook text** at the top:
+
+  * “Below is Runbook #2… delivered in ONE single code block…”
+* And you started the file with:
+
+  * ```markdown
+    ```
+
+  That means GitHub will treat the whole thing like code and break formatting.
+* You also closed that fence early with:
+
+  * ```
+    ```
+
+  right after the first command, which splits the document weirdly.
+
+### ✅ Fix = delete the wrapper + delete the intro
+
+Your file should start directly with:
+
+```markdown
+# Runbook: VPC CNI IP Exhaustion / Pod IP Allocation Failures (EKS)
+```
+
+…and it should **NOT** contain any of these:
+
+* “Below is Runbook #2…”
+* “runbooks/vpc-cni-ip-exhaustion…”
+* ```markdown (four backticks)
+  ```
+
+---
+
+## Step-by-step fix in VS Code (do exactly this)
+
+### 1) Open the file
+
+`runbooks/vpc-cni-ip-exhaustion-prefix-delegation.md`
+
+### 2) Select everything and delete
+
+* Press **Ctrl + A**
+* Press **Backspace**
+
+### 3) Paste the clean version below
+
+Paste **this entire block** into the file.
+
+### 4) Save
+
+* Press **Ctrl + S**
+
+### 5) Commit + push
+
+In GitHub Desktop:
+
+* Summary: `Fix VPC CNI runbook formatting`
+* Commit → Push origin
+
+---
+
+## ✅ CLEAN Runbook #2 (paste this ONLY)
+
+````markdown
 # Runbook: VPC CNI IP Exhaustion / Pod IP Allocation Failures (EKS)
 
 ## Purpose
@@ -19,226 +89,252 @@ Common symptoms include:
 ### 1. Identify affected pods
 ```bash
 kubectl get pods -A | grep -E 'Pending|ContainerCreating'
+````
+
 Describe one affected pod:
 
-bash
-Copy code
+```bash
 kubectl describe pod <pod-name> -n <namespace>
+```
+
 Look for events like:
 
-FailedCreatePodSandBox
+* `FailedCreatePodSandBox`
+* `failed to allocate IP address`
+* `no free IPs available in the subnet`
 
-failed to allocate IP address
+---
 
-no free IPs available in the subnet
+### 2. Check VPC CNI (aws-node) pod health
 
-2. Check VPC CNI (aws-node) pod health
-bash
-Copy code
+```bash
 kubectl get pods -n kube-system -l k8s-app=aws-node
 kubectl logs -n kube-system -l k8s-app=aws-node --tail=200
+```
+
 Common log messages:
 
-failed to assign an IP address to container
+* `failed to assign an IP address to container`
+* `IPAM exhausted`
+* `no available IP addresses`
+* `failed to attach ENI`
 
-IPAM exhausted
+---
 
-no available IP addresses
+### 3. Check node pod capacity
 
-failed to attach ENI
-
-3. Check node pod capacity
-bash
-Copy code
+```bash
 kubectl get nodes -o wide
 kubectl describe node <node-name>
+```
+
 Pay attention to:
 
-Allocatable: pods
+* `Allocatable: pods`
+* Current pod count vs max pods
+* Whether the node has reached its pod limit
 
-Current pod count vs max pods
+---
 
-Whether the node has reached its pod limit
+## Deep Diagnosis
 
-Deep Diagnosis
-4. Verify subnet IP availability
+### 4. Verify subnet IP availability
+
 Identify the subnet(s) used by the node:
 
-bash
-Copy code
+```bash
 kubectl describe node <node-name> | grep -i subnet
+```
+
 Then check subnet free IPs (AWS Console or CLI):
 
-bash
-Copy code
+```bash
 aws ec2 describe-subnets --subnet-ids <subnet-id>
+```
+
 Red flags:
 
-Subnet with very low available IP addresses
+* Subnet with very low available IP addresses
+* Small CIDR ranges (e.g., /27, /28) used for worker nodes
 
-Small CIDR ranges (e.g., /27, /28) used for worker nodes
+---
 
-5. Check ENI and IP limits for instance type
+### 5. Check ENI and IP limits for instance type
+
 Confirm instance type:
 
-bash
-Copy code
+```bash
 kubectl get node <node-name> -o jsonpath='{.metadata.labels.node\.kubernetes\.io/instance-type}'
 echo
+```
+
 Compare against AWS limits:
 
-Max ENIs
-
-IPs per ENI
-
-Effective max pods per node
+* Max ENIs
+* IPs per ENI
+* Effective max pods per node
 
 If the node hits ENI/IP limits, no more pods can be scheduled.
 
-6. Verify prefix delegation configuration
+---
+
+### 6. Verify prefix delegation configuration
+
 Check CNI config:
 
-bash
-Copy code
+```bash
 kubectl get configmap aws-node -n kube-system -o yaml
+```
+
 Look for values like:
 
-ENABLE_PREFIX_DELEGATION: "true"
-
-WARM_PREFIX_TARGET: "1"
+* `ENABLE_PREFIX_DELEGATION: "true"`
+* `WARM_PREFIX_TARGET: "1"`
 
 If prefix delegation is disabled:
 
-Nodes consume individual IPs rapidly
+* Nodes consume individual IPs rapidly
+* IP exhaustion occurs sooner
 
-IP exhaustion occurs sooner
+---
 
-7. Check warm IP / prefix targets
-Review these environment variables in the aws-node DaemonSet:
+### 7. Check warm IP / prefix targets
 
-WARM_IP_TARGET
+Review these environment variables in the `aws-node` DaemonSet:
 
-MINIMUM_IP_TARGET
+* `WARM_IP_TARGET`
+* `MINIMUM_IP_TARGET`
+* `WARM_PREFIX_TARGET`
 
-WARM_PREFIX_TARGET
-
-bash
-Copy code
+```bash
 kubectl describe daemonset aws-node -n kube-system | grep -A5 -E 'WARM_|MINIMUM_'
+```
+
 Misconfigured values may cause:
 
-Slow IP allocation
+* Slow IP allocation
+* Bursty pod creation failures during scaling events
 
-Bursty pod creation failures during scaling events
+---
 
-Common Root Causes and Resolutions
-A. Subnet IP exhaustion
-Symptoms
+## Common Root Causes and Resolutions
 
-Multiple nodes affected
+### A. Subnet IP exhaustion
 
-AWS console shows low available IPs in subnet
+**Symptoms**
 
-Resolution
+* Multiple nodes affected
+* AWS console shows low available IPs in subnet
 
-Expand subnet CIDR
+**Resolution**
 
-Add larger or additional subnets
+* Expand subnet CIDR
+* Add larger or additional subnets
+* Move node groups to larger subnets
 
-Move node groups to larger subnets
+**Prevention**
 
-Prevention
+* Use /23 or larger subnets for EKS nodes
+* Monitor available IPs with CloudWatch
 
-Use /23 or larger subnets for EKS nodes
+---
 
-Monitor available IPs with CloudWatch
+### B. Prefix delegation disabled
 
-B. Prefix delegation disabled
-Symptoms
+**Symptoms**
 
-Nodes hit pod limit early
+* Nodes hit pod limit early
+* ENI IP exhaustion occurs quickly
 
-ENI IP exhaustion occurs quickly
-
-Resolution
+**Resolution**
 Enable prefix delegation and restart aws-node:
 
-bash
-Copy code
+```bash
 kubectl set env daemonset aws-node -n kube-system ENABLE_PREFIX_DELEGATION=true
 kubectl rollout restart daemonset aws-node -n kube-system
-Prevention
+```
 
-Enable prefix delegation by default for EKS clusters
+**Prevention**
 
-Validate after cluster upgrades
+* Enable prefix delegation by default for EKS clusters
+* Validate after cluster upgrades
 
-C. Node reached max pod capacity
-Symptoms
+---
 
-Node shows Allocatable pods fully consumed
+### C. Node reached max pod capacity
 
-New pods remain pending despite free CPU/memory
+**Symptoms**
 
-Resolution
+* Node shows `Allocatable pods` fully consumed
+* New pods remain pending despite free CPU/memory
 
-Scale node group
+**Resolution**
 
-Use larger instance types
+* Scale node group
+* Use larger instance types
+* Reduce pod density per node
 
-Reduce pod density per node
+**Prevention**
 
-Prevention
+* Right-size instance types
+* Validate max-pods configuration
 
-Right-size instance types
+---
 
-Validate max-pods configuration
+### D. Warm IP / prefix targets too low
 
-D. Warm IP / prefix targets too low
-Symptoms
+**Symptoms**
 
-Pods fail during rapid scale-up
+* Pods fail during rapid scale-up
+* IPs eventually allocate but with delays
 
-IPs eventually allocate but with delays
-
-Resolution
+**Resolution**
 Example tuning (adjust to your environment):
 
-bash
-Copy code
+```bash
 kubectl set env daemonset aws-node -n kube-system WARM_PREFIX_TARGET=1
 kubectl rollout restart daemonset aws-node -n kube-system
-Prevention
+```
 
-Tune warm targets based on scaling patterns
+**Prevention**
 
-Monitor IP allocation latency
+* Tune warm targets based on scaling patterns
+* Monitor IP allocation latency
 
-Post-Fix Verification
-1. Restart a test pod
-bash
-Copy code
+---
+
+## Post-Fix Verification
+
+### 1. Restart a test pod
+
+```bash
 kubectl run ip-test --image=nginx --restart=Never
 kubectl describe pod ip-test
-2. Verify aws-node stability
-bash
-Copy code
+```
+
+### 2. Verify aws-node stability
+
+```bash
 kubectl logs -n kube-system -l k8s-app=aws-node --tail=100
+```
+
 Success criteria:
 
-Pods move to Running
+* Pods move to `Running`
+* No new IPAM or ENI errors
+* Node pod count increases successfully
 
-No new IPAM or ENI errors
+---
 
-Node pod count increases successfully
+## Long-Term SRE Improvements
 
-Long-Term SRE Improvements
-Enable prefix delegation cluster-wide
+* Enable prefix delegation cluster-wide
+* Use larger CIDR subnets for worker nodes
+* Monitor subnet available IPs
+* Alert on IPAM errors from aws-node
+* Test scaling behavior during load tests
 
-Use larger CIDR subnets for worker nodes
+````
 
-Monitor subnet available IPs
+---
 
-Alert on IPAM errors from aws-node
-
-Test scaling behavior during load tests
