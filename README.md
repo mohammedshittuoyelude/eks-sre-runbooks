@@ -44,7 +44,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 - Node pressure and evictions
 - Runtime-specific behavior (.NET, JVM, Python)
 
-📄 `runbooks/pod-oomkill-cpu-throttling.md`
+ `runbooks/pod-oomkill-cpu-throttling.md`
 
 ---
 
@@ -57,11 +57,11 @@ The runbooks are written from real-world incident patterns and are designed to:
 - AZ imbalance and IP exhaustion
 - Spot vs on-demand behavior
 
-📄 `runbooks/karpenter-node-provisioning-failures.md`
+ `runbooks/karpenter-node-provisioning-failures.md`
 
 ---
 
-## 🎯 Who This Is For
+##  Who This Is For
 - SREs and Platform Engineers
 - Kubernetes and EKS operators
 - On-call engineers supporting production workloads
@@ -69,7 +69,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-## 🧠 Design Philosophy
+## Design Philosophy
 - Incident-driven, not theory-driven
 - Clear separation of **triage**, **diagnosis**, and **resolution**
 - Emphasis on **why** failures occur, not just how to fix them
@@ -77,7 +77,7 @@ The runbooks are written from real-world incident patterns and are designed to:
 
 ---
 
-## 🚀 Future Additions
+## Future Additions
 - EKS API server & kube-proxy networking failures
 - Node-level packet drops and blackholes
 - Service mesh & sidecar impact on performance
