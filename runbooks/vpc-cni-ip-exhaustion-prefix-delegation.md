@@ -1,73 +1,3 @@
-Perfect — I can see the exact problem now.
-
-### ✅ What’s happening
-
-You accidentally pasted my *chat instructions* into the file **and** you wrapped the runbook in an outer fence:
-
-* You have this **non-runbook text** at the top:
-
-  * “Below is Runbook #2… delivered in ONE single code block…”
-* And you started the file with:
-
-  * ```markdown
-    ```
-
-  That means GitHub will treat the whole thing like code and break formatting.
-* You also closed that fence early with:
-
-  * ```
-    ```
-
-  right after the first command, which splits the document weirdly.
-
-### ✅ Fix = delete the wrapper + delete the intro
-
-Your file should start directly with:
-
-```markdown
-# Runbook: VPC CNI IP Exhaustion / Pod IP Allocation Failures (EKS)
-```
-
-…and it should **NOT** contain any of these:
-
-* “Below is Runbook #2…”
-* “runbooks/vpc-cni-ip-exhaustion…”
-* ```markdown (four backticks)
-  ```
-
----
-
-## Step-by-step fix in VS Code (do exactly this)
-
-### 1) Open the file
-
-`runbooks/vpc-cni-ip-exhaustion-prefix-delegation.md`
-
-### 2) Select everything and delete
-
-* Press **Ctrl + A**
-* Press **Backspace**
-
-### 3) Paste the clean version below
-
-Paste **this entire block** into the file.
-
-### 4) Save
-
-* Press **Ctrl + S**
-
-### 5) Commit + push
-
-In GitHub Desktop:
-
-* Summary: `Fix VPC CNI runbook formatting`
-* Commit → Push origin
-
----
-
-## ✅ CLEAN Runbook #2 (paste this ONLY)
-
-````markdown
 # Runbook: VPC CNI IP Exhaustion / Pod IP Allocation Failures (EKS)
 
 ## Purpose
@@ -83,8 +13,6 @@ Common symptoms include:
 - VPC CNI (`aws-node`) errors in logs
 
 ---
-
-## Quick Triage (5–10 minutes)
 
 ### 1. Identify affected pods
 ```bash
