@@ -293,5 +293,3 @@ Success criteria:
 * Add CoreDNS autoscaling
 * Monitor DNS latency and error rates (p50/p95)
 * Track SERVFAIL and timeout rates via metrics
-
-```
