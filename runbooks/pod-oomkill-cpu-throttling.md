@@ -263,5 +263,3 @@ kubectl describe pod <pod-name> -n <namespace> | sed -n '1,160p'
   * memory approaching limit
 * Add load tests to validate scaling behavior
 * Track memory leak indicators and automate heap/diagnostic capture where possible
-
-```
