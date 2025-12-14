@@ -1,13 +1,3 @@
-Absolutely 👍
-Below is **the full Runbook #1 markdown**, **clean and ready to copy–paste** into your file:
-
-**`runbooks/coredns-dns-latency-timeouts.md`**
-
-Just copy **everything from the line below to the end** and paste it into VS Code.
-
----
-
-````markdown
 # Runbook: CoreDNS DNS Latency / Timeouts (EKS)
 
 ## Purpose
@@ -41,7 +31,7 @@ kubectl get pods -n kube-system -l k8s-app=kube-dns
 kubectl get deploy coredns -n kube-system
 kubectl get svc kube-dns -n kube-system
 kubectl get endpoints kube-dns -n kube-system
-````
+
 
 Expected:
 
